@@ -1,9 +1,9 @@
+#define CATCH_CONFIG_MAIN
+
 #include "catch.hpp"
 #include "fiting_tree.h"
 
 #include <type_traits>
-
-#define CATCH_CONFIG_MAIN
 
 TEMPLATE_TEST_CASE("Segmentation algorithm", "", float, double, uint32_t, uint64_t)
 {
@@ -32,6 +32,21 @@ TEMPLATE_TEST_CASE("Segmentation algorithm", "", float, double, uint32_t, uint64
     std::sort(data.begin(), data.end());
     auto segments = get_all_segments(data.begin(), data.end(), error);
     auto it = segments.begin();
+    auto [slope, intercept] = it->get_slope_intercept();
 
-    REQUIRE(segments.size() > 0);
+    for (auto i = 0; i < data.size(); i++)
+    {
+        if (i != 0 && data[i] == data[i - 1])
+            continue;
+
+        if (std::next(it) != segments.end() && std::next(it)->get_start_key() <= data[i])
+        {
+            ++it;
+            std::tie(slope, intercept) = it->get_slope_intercept();
+        }
+
+        auto pos = (data[i] - it->get_start_key()) * slope + intercept;
+        auto offset = std::fabs(i - pos);
+        REQUIRE(offset <= error + 1);
+    }
 }

@@ -8,18 +8,21 @@
 #include "segment.h"
 
 template <typename T>
-using LargeSigned = typename std::conditional_t<std::is_floating_point<T>::value,
+using LargeSigned = typename std::conditional_t<std::is_floating_point_v<T>,
                                                 long double,
-                                                int64_t>;
+                                                std::conditional_t<(sizeof(T) < 8), int64_t, __int128>>;
 
 template <typename X, typename Y>
 class PiecewiseLinearModel
 {
 private:
+    using SX = LargeSigned<X>;
+    using SY = LargeSigned<Y>;
+
     struct Slope
     {
-        X dx{};
-        Y dy{};
+        SX dx{};
+        SY dy{};
 
         inline bool operator<(const Slope &p) const
         {
@@ -50,11 +53,11 @@ private:
     struct Point
     {
         X x{};
-        Y y{};
+        SY y{};
 
         inline Slope operator-(const Point &p) const
         {
-            return {x - p.x, y - p.y};
+            return {SX(x) - p.x, y - p.y};
         }
     };
 
@@ -76,7 +79,7 @@ public:
 
     bool add_point(const X &x, const Y &y)
     {
-        Point current_point{x, SY(y)};
+        Point current_point{x, y};
         Point p1{x, SY(y) + error};
         Point p2{x, SY(y) - error};
 
@@ -124,12 +127,14 @@ public:
         return true;
     }
 
-    Segment<X, SY> get_segment()
+    Segment<X, Y> get_segment()
     {
+        if (points_in_segment == 1)
+            return Segment<X, Y>((X)first_point.x, (Y)first_point.y, (X)last_point.x, 1);
         long double u_slope = (long double)upper_slope;
         long double l_slope = (long double)lower_slope;
         long double slope = (u_slope + l_slope) / 2;
-        return Segment<X, SY>(first_point.x, first_point.y, last_point.x, slope);
+        return Segment<X, Y>((X)first_point.x, (Y)first_point.y, (X)last_point.x, slope);
     }
 };
 
