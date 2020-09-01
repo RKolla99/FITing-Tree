@@ -50,3 +50,46 @@ TEMPLATE_TEST_CASE("Segmentation algorithm", "", float, double, uint32_t, uint64
         REQUIRE(offset <= error + 1);
     }
 }
+
+TEMPLATE_TEST_CASE_SIG("Fiting-Tree Index", "",
+                       ((typename T, size_t E), T, E),
+                       (uint32_t, 16), (uint32_t, 32), (uint32_t, 64),
+                       (uint64_t, 16), (uint64_t, 32), (uint64_t, 64))
+{
+    std::vector<T> data(2000000);
+    std::mt19937 engine(42);
+
+    using RandomFunction = std::function<T()>;
+    RandomFunction uniform_dense = std::bind(std::uniform_int_distribution<T>(0, 10000), engine);
+    RandomFunction uniform_sparse = std::bind(std::uniform_int_distribution<T>(0, 10000000), engine);
+    RandomFunction binomial = std::bind(std::binomial_distribution<T>(50000), engine);
+    RandomFunction geometric = std::bind(std::geometric_distribution<T>(0.8), engine);
+    auto rand = GENERATE_COPY(as<RandomFunction>{}, uniform_dense, uniform_sparse, binomial, geometric);
+
+    std::generate(data.begin(), data.end(), rand);
+    std::sort(data.begin(), data.end());
+    FitingTree<T, E> fiting_tree(data);
+
+    for (auto i = 1; i <= 10000; ++i)
+    {
+        auto q = data[std::rand() % data.size()];
+        auto approx_range = fiting_tree.get_approx_pos(q);
+        auto lo = data.begin() + approx_range.lo;
+        auto hi = data.begin() + approx_range.hi;
+        auto k = std::lower_bound(lo, hi, q);
+        REQUIRE(*k == q);
+    }
+
+    // Test elements outside range
+    auto q = data.back() + 42;
+    auto approx_range = fiting_tree.get_approx_pos(q);
+    auto lo = data.begin() + approx_range.lo;
+    auto hi = data.begin() + approx_range.hi;
+    REQUIRE(std::lower_bound(lo, hi, q) == data.end());
+
+    q = 0;
+    approx_range = fiting_tree.get_approx_pos(q);
+    lo = data.begin() + approx_range.lo;
+    hi = data.begin() + approx_range.hi;
+    REQUIRE(std::lower_bound(lo, hi, q) == data.begin());
+}

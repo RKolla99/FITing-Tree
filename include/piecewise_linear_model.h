@@ -134,7 +134,7 @@ public:
         long double u_slope = (long double)upper_slope;
         long double l_slope = (long double)lower_slope;
         long double slope = (u_slope + l_slope) / 2;
-        return Segment<X, Y>((X)first_point.x, (Y)first_point.y, (X)last_point.x, slope);
+        return Segment<X, Y>(X(first_point.x), Y(first_point.y), X(last_point.x), slope);
     }
 };
 
