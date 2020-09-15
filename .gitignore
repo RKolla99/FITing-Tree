@@ -5,6 +5,10 @@
 CMakeFiles/
 Makefile
 *.cmake
+CMakeCache.txt
 
 #VSCode
 .vscode/
+
+#Executables
+tests

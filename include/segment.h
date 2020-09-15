@@ -15,12 +15,12 @@ public:
 
     Segment(KeyType start_key, PosType start_pos, KeyType end_key, Floating slope) : start_key(start_key), start_pos(start_pos), end_key(end_key), slope(slope){};
 
-    KeyType get_start_key()
+    KeyType get_start_key() const
     {
         return start_key;
     }
 
-    std::pair<long double, long double> get_slope_intercept()
+    std::pair<long double, long double> get_slope_intercept() const
     {
         return {slope, start_pos};
     }

@@ -72,7 +72,7 @@ public:
         fiting_tree.bulk_load(formatted_segments.begin(), formatted_segments.end());
     }
 
-    ApproxPos get_approx_pos(const KeyType &key)
+    ApproxPos get_approx_pos(const KeyType &key) const
     {
         if (n == 0)
             return {0, 0, 0};
