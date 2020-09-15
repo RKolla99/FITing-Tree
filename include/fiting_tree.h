@@ -86,12 +86,14 @@ public:
         {
             KeyType start_key = it->second.get_start_key();
             auto [slope, intercept] = it->second.get_slope_intercept();
-
             auto pos = (key - start_key) * slope + intercept;
 
             if (pos - Error > n)
                 return {n - 1, n, n - 1};
-            return {pos, ADD_ERR(pos, Error, n), SUB_ERR(pos, Error)};
+
+            uint64_t hi = ADD_ERR(pos, Error, n);
+            uint64_t lo = SUB_ERR(pos, Error);
+            return {(uint64_t)pos, hi, lo};
         }
     }
 };
