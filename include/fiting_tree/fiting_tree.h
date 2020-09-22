@@ -16,9 +16,9 @@
  * A novel index structure that leverages porperties about the underlying data distribution to reduce
  * the size of an index. 
  * 
- * The index is built on a sorted sequence of keys. A query returns a struct @ref ApproxPos containing
+ * The index is built on a sorted sequence of keys. A query returns a struct ApproxPos containing
  * the approximate position of the key and the bounds of the range of size 2*Error where the key to be
- * found exists, if present. In the case of repeated keys, the index finds the position of the first
+ * found exists, if present. In the case of repeated keys, the index finds the position of the first 
  * occurrence.
  * 
  * The @p Error template parameter should be set according to the desired space-time trade-off. A 

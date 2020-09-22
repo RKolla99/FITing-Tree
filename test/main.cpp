@@ -2,6 +2,7 @@
 
 #include "catch.hpp"
 #include "fiting_tree.h"
+#include "buffered_fiting_tree.h"
 
 #include <type_traits>
 
@@ -92,4 +93,21 @@ TEMPLATE_TEST_CASE_SIG("Fiting-Tree Index", "",
     lo = data.begin() + approx_range.lo;
     hi = data.begin() + approx_range.hi;
     REQUIRE(std::lower_bound(lo, hi, q) == data.begin());
+}
+
+TEST_CASE("Buffered Fiting-Tree Iterator")
+{
+    std::srand(42);
+    std::vector<uint32_t> data(100);
+    std::generate(data.begin(), data.end(), [] { return std::rand() % 100; });
+    std::sort(data.begin(), data.end());
+
+    BufferedFitingTree<uint32_t, uint32_t> fiting_tree(data);
+
+    int i = 0;
+    for (auto it = fiting_tree.begin(); it != fiting_tree.end(); ++it)
+    {
+        REQUIRE(it->key() == data[i]);
+        i += 1;
+    }
 }

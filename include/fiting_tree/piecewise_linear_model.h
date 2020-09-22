@@ -6,6 +6,7 @@
 #include <type_traits>
 
 #include "segment.h"
+#include "buffered_segment.h"
 
 template <typename T>
 using LargeSigned = typename std::conditional_t<std::is_floating_point_v<T>,
@@ -136,6 +137,16 @@ public:
         long double slope = (u_slope + l_slope) / 2;
         return Segment<X, Y>(X(first_point.x), Y(first_point.y), X(last_point.x), slope);
     }
+
+    BufferedSegment<X, Y> get_buffered_segment(std::vector<std::pair<X, Y>> &keys, const uint64_t &buf_size)
+    {
+        if (points_in_segment == 1)
+            return BufferedSegment<X, Y>((X)first_point.x, (Y)first_point.y, (X)last_point.x, 1, keys, buf_size);
+        long double u_slope = (long double)upper_slope;
+        long double l_slope = (long double)lower_slope;
+        long double slope = (u_slope + l_slope) / 2;
+        return BufferedSegment<X, Y>(X(first_point.x), Y(first_point.y), X(last_point.x), slope, keys, buf_size);
+    }
 };
 
 template <typename Fin, typename Fout>
@@ -146,6 +157,7 @@ size_t get_all_segments(size_t n, size_t error, Fin in, Fout out)
 
     using X = typename std::invoke_result_t<Fin, size_t>::first_type;
     using Y = typename std::invoke_result_t<Fin, size_t>::second_type;
+
     size_t num_segments = 0;
     size_t start = 0;
     auto kv = in(0);
@@ -170,6 +182,51 @@ size_t get_all_segments(size_t n, size_t error, Fin in, Fout out)
     }
 
     out(plm.get_segment());
+    return ++num_segments;
+}
+
+template <typename Fin, typename Fout>
+size_t get_all_segments_buffered(size_t n, size_t error, uint64_t buf_size, Fin in, Fout out)
+{
+    if (n == 0)
+        return 0;
+
+    using X = typename std::invoke_result_t<Fin, size_t>::first_type;
+    using Y = typename std::invoke_result_t<Fin, size_t>::second_type;
+
+    std::vector<std::pair<X, Y>> keys;
+    size_t num_segments = 0;
+    size_t start = 0;
+    auto kv = in(0);
+
+    PiecewiseLinearModel<X, Y> plm(error);
+    plm.add_point(kv.first, kv.second);
+    keys.emplace_back(kv.first, kv.second);
+
+    for (size_t i = 1; i < n; ++i)
+    {
+        auto next_kv = in(i);
+        if (i != start && next_kv.first == kv.first)
+        {
+            keys.emplace_back(kv.first, kv.second);
+            continue;
+        }
+
+        kv = next_kv;
+        if (!plm.add_point(kv.first, kv.second))
+        {
+            out(plm.get_buffered_segment(keys, buf_size));
+            start = i;
+            --i;
+            ++num_segments;
+            keys.clear();
+            continue;
+        }
+
+        keys.emplace_back(kv.first, kv.second);
+    }
+
+    out(plm.get_buffered_segment(keys, buf_size));
     return ++num_segments;
 }
 
