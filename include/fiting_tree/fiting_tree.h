@@ -121,8 +121,8 @@ public:
         }
         else
         {
-            KeyType start_key = it->second.get_start_key();
-            auto [slope, intercept] = it->second.get_slope_intercept();
+            KeyType start_key = it.data().get_start_key();
+            auto [slope, intercept] = it.data().get_slope_intercept();
             auto pos = (key - start_key) * slope + intercept;
 
             if (pos - Error > n)

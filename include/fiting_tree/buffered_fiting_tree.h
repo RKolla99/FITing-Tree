@@ -56,12 +56,11 @@ public:
         using tree_pair_type = typename std::pair<KeyType, BufferedSegment<KeyType, PosType>>;
 
         std::vector<tree_pair_type> formatted_segments;
-        auto error_value = Error;
         size_t num_segments;
 
         auto in_fun = [this, first](auto i) { return pair_type(first[i], i); };
         auto out_fun = [this](auto segment) { segments.emplace_back(segment); };
-        num_segments = get_all_segments_buffered(n, error_value, buffer_size, in_fun, out_fun);
+        num_segments = get_all_segments_buffered(n, seg_error, buffer_size, in_fun, out_fun);
 
         formatted_segments.reserve(num_segments);
         for (auto it = segments.rbegin(); it != segments.rend(); ++it)
@@ -70,6 +69,58 @@ public:
         }
 
         buffered_fiting_tree.bulk_load(formatted_segments.begin(), formatted_segments.end());
+    }
+
+    iterator find(const KeyType &key) const
+    {
+        if (n == 0)
+            return end();
+
+        auto it = buffered_fiting_tree.lower_bound(key);
+        if (it == buffered_fiting_tree.end())
+            return end();
+
+        KeyType start_key = it->second.get_start_key();
+        auto [slope, intercept] = it->second.get_slope_intercept();
+        auto pos = (key - start_key) * slope;
+
+        auto segment_key = it.data().find_key(key, pos, seg_error);
+        if (segment_key == it.data().end() || segment_key->key() != key)
+        {
+            auto segment_buffer = it.data().find_buffer(key);
+            if (segment_buffer == it.data().end() || segment_buffer->key() != key)
+            {
+                return end();
+            }
+            return iterator(this, it, segment_buffer);
+        }
+        return iterator(this, it, segment_key);
+    }
+
+    iterator lower_bound(const KeyType &key)
+    {
+        if (n == 0)
+            return end();
+
+        auto it = buffered_fiting_tree.lower_bound(key);
+        if (it == buffered_fiting_tree.end())
+            return end();
+
+        KeyType start_key = it.data().get_start_key();
+        auto [slope, intercept] = it.data().get_slope_intercept();
+        auto pos = (key - start_key) * slope;
+
+        auto segment_key = it.data().find_key(key, pos, seg_error);
+        if (segment_key == it.data().end())
+        {
+            auto segment_buffer = it.data().find_buffer(key);
+            if (segment_buffer == it.data().end())
+            {
+                return end();
+            }
+            return iterator(this, it, segment_buffer);
+        }
+        return iterator(this, it, segment_key);
     }
 
     iterator begin() const
@@ -117,11 +168,14 @@ class BufferedFitingTree<K, P, Error, BufferSize, Floating>::BufferedFitingTreeI
         }
 
         ++segment_it;
-        if (segment_it == super->segments[0].end())
+        if (segment_it == tree_it.data().end())
         {
             ++tree_it;
             if (tree_it == super->buffered_fiting_tree.rend())
+            {
+                *this = super->end();
                 return;
+            }
             segment_it = tree_it.data().begin();
         }
     }
@@ -154,8 +208,8 @@ public:
 
     reference operator*() const { return *segment_it; }
     pointer operator->() const { return &(*segment_it); }
-    bool operator==(const BufferedFitingTreeIterator &rhs) { return segment_it == rhs.segment_it; }
-    bool operator!=(const BufferedFitingTreeIterator &rhs) { return segment_it != rhs.segment_it; }
+    bool operator==(const BufferedFitingTreeIterator &rhs) { return ((segment_it == rhs.segment_it) && (tree_it == rhs.tree_it)); }
+    bool operator!=(const BufferedFitingTreeIterator &rhs) { return ((segment_it != rhs.segment_it) || (tree_it != rhs.tree_it)); }
 };
 
 #endif

@@ -98,16 +98,37 @@ TEMPLATE_TEST_CASE_SIG("Fiting-Tree Index", "",
 TEST_CASE("Buffered Fiting-Tree Iterator")
 {
     std::srand(42);
-    std::vector<uint32_t> data(100);
-    std::generate(data.begin(), data.end(), [] { return std::rand() % 100; });
-    std::sort(data.begin(), data.end());
+    auto gen = [] { return std::rand() % 1000000000; };
 
-    BufferedFitingTree<uint32_t, uint32_t> fiting_tree(data);
+    std::vector<uint32_t> bulk(1000000);
+    std::generate(bulk.begin(), bulk.end(), gen);
+    std::sort(bulk.begin(), bulk.end());
+
+    BufferedFitingTree<uint32_t, uint32_t> fiting_tree(bulk);
 
     int i = 0;
     for (auto it = fiting_tree.begin(); it != fiting_tree.end(); ++it)
     {
-        REQUIRE(it->key() == data[i]);
+        REQUIRE(it->key() == bulk[i]);
         i += 1;
+    }
+}
+
+TEMPLATE_TEST_CASE("Buffered FITing-Tree Index", "", uint32_t, uint64_t)
+{
+    std::srand(42);
+    auto gen = [] { return std::rand() % 1000000000; };
+
+    std::vector<uint32_t> bulk(1000000);
+    std::generate(bulk.begin(), bulk.end(), gen);
+    std::sort(bulk.begin(), bulk.end());
+
+    BufferedFitingTree<uint32_t, TestType> fiting_tree(bulk);
+
+    for (auto i = 1; i <= 1000; ++i)
+    {
+        auto q = bulk[std::rand() % bulk.size()];
+        auto it = fiting_tree.lower_bound(q);
+        REQUIRE(it->key() == q);
     }
 }

@@ -4,6 +4,9 @@
 #include <vector>
 #include <map>
 
+#define ADD_ERR(x, error, size) ((x) + (error) >= (size) ? (size) : (x) + (error))
+#define SUB_ERR(x, error) ((x) <= (error) ? 0 : ((x) - (error)))
+
 /**
  * The BufferedSegment type represents a segment created during segmentation process of the data.
  * The segments are created using the Shrinking Cone Algorithm. It differs from the normal Segment
@@ -114,6 +117,27 @@ public:
     iterator end() const
     {
         return iterator(this, keys.end(), buffer.end());
+    }
+
+    iterator find_key(const KeyType &key, const PosType &pos, const PosType &error) const
+    {
+        auto lb = keys.begin() + SUB_ERR(pos, error);
+        auto ub = keys.begin() + ADD_ERR(pos, error, keys.size());
+
+        auto it = std::lower_bound(lb, ub, key);
+        if (it == keys.end() || it->deleted())
+            return end();
+
+        return iterator(this, it, buffer.end());
+    }
+
+    iterator find_buffer(const KeyType &key) const
+    {
+        auto it = buffer.find(key);
+        if (it == buffer.end() || it->second.deleted())
+            return end();
+
+        return iterator(this, keys.end(), it);
     }
 
     inline bool operator<(const BufferedSegment &s)
@@ -245,6 +269,8 @@ public:
 
     const K &key() const { return first; }
     const P &pos() const { return second; }
+
+    bool operator<(const K &key) const { return first < key; }
 };
 
 #endif
