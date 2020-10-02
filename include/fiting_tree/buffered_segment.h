@@ -4,9 +4,6 @@
 #include <vector>
 #include <map>
 
-#define ADD_ERR(x, error, size) ((x) + (error) >= (size) ? (size) : (x) + (error))
-#define SUB_ERR(x, error) ((x) <= (error) ? 0 : ((x) - (error)))
-
 /**
  * The BufferedSegment type represents a segment created during segmentation process of the data.
  * The segments are created using the Shrinking Cone Algorithm. It differs from the normal Segment
@@ -80,12 +77,46 @@ public:
 
     bool insert_buffer(const KeyType &key, const PosType &pos)
     {
-        if (buffer_size > max_buffer_size)
+        if (buffer_size >= max_buffer_size)
             return false;
 
         buffer.insert({key, DataItem(key, pos)});
         buffer_size += 1;
         return true;
+    }
+
+    std::vector<pair_type> merge_buffer(const KeyType &new_key, const PosType &new_pos) const
+    {
+        std::vector<pair_type> merged_keys;
+        merged_keys.reserve(keys.size() + buffer_size + 1);
+        bool new_key_added = false;
+
+        auto it = begin();
+        while (it != end())
+        {
+            if (it->deleted())
+            {
+                ++it;
+                continue;
+            }
+
+            if (!new_key_added && new_key < it->key())
+            {
+                merged_keys.emplace_back(new_key, new_pos);
+                new_key_added = true;
+                continue;
+            }
+
+            merged_keys.emplace_back(it->key(), it->pos());
+            ++it;
+        }
+
+        return merged_keys;
+    }
+
+    size_t size() const
+    {
+        return (keys.size() + buffer_size);
     }
 
     iterator begin() const
@@ -117,27 +148,6 @@ public:
     iterator end() const
     {
         return iterator(this, keys.end(), buffer.end());
-    }
-
-    iterator find_key(const KeyType &key, const PosType &pos, const PosType &error) const
-    {
-        auto lb = keys.begin() + SUB_ERR(pos, error);
-        auto ub = keys.begin() + ADD_ERR(pos, error, keys.size());
-
-        auto it = std::lower_bound(lb, ub, key);
-        if (it == keys.end() || it->deleted())
-            return end();
-
-        return iterator(this, it, buffer.end());
-    }
-
-    iterator find_buffer(const KeyType &key) const
-    {
-        auto it = buffer.find(key);
-        if (it == buffer.end() || it->second.deleted())
-            return end();
-
-        return iterator(this, keys.end(), it);
     }
 
     inline bool operator<(const BufferedSegment &s)
@@ -194,7 +204,9 @@ class BufferedSegment<K, P, Floating>::BufferedSegmentIterator
     }
 
 public:
+    using iterator_category = std::forward_iterator_tag;
     using value_type = const DataItem;
+    using difference_type = size_t;
     using pointer = const DataItem *;
     using reference = const DataItem &;
 

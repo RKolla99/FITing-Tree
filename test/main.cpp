@@ -131,4 +131,13 @@ TEMPLATE_TEST_CASE("Buffered FITing-Tree Index", "", uint32_t, uint64_t)
         auto it = fiting_tree.lower_bound(q);
         REQUIRE(it->key() == q);
     }
+
+    for (auto i = 1; i <= 10000; ++i)
+    {
+        auto k = gen();
+        fiting_tree.insert(k, 1000000 + i);
+
+        auto it = fiting_tree.find(k);
+        REQUIRE(it->key() == k);
+    }
 }
