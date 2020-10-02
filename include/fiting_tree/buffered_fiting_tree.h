@@ -189,6 +189,15 @@ public:
         }
     }
 
+    void erase(const KeyType &key)
+    {
+        auto it = find(key);
+        if (it == end())
+            return;
+
+        it->set_deleted();
+    }
+
     iterator begin() const
     {
         if (n == 0)

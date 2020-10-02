@@ -140,4 +140,13 @@ TEMPLATE_TEST_CASE("Buffered FITing-Tree Index", "", uint32_t, uint64_t)
         auto it = fiting_tree.find(k);
         REQUIRE(it->key() == k);
     }
+
+    for (auto i = 1; i <= 1000; ++i)
+    {
+        auto q = bulk[std::rand() % bulk.size()];
+        fiting_tree.erase(q);
+
+        auto it = fiting_tree.find(q);
+        REQUIRE(it == fiting_tree.end());
+    }
 }
