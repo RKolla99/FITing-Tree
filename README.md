@@ -61,5 +61,5 @@ The design has been made to match with [SOSD](https://github.com/learnedsystems/
 AS mentioned above, the design has been made to match with SOSD and we've integrated the index with the SOSD Benchmark for performance results. The work can be found [here](https://github.com/reddybhargava/SOSD/tree/dev).
 
 # TODO
-1. Add and updation and deletion features.
+1. Add updation and deletion features.
 2. Commit hash 20d39375e77a5eff40e4b9c8651e28f742593e93 is the latest stable commit
